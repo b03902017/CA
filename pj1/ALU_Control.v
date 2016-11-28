@@ -1,18 +1,47 @@
 module ALU_Control(
-    funct_i,
-    ALUOp_i,
-    ALUCtrl_o
+	funct_i,
+	ALUOp_i,
+	ALUCtrl_o
 );
 
-    input [5:0] funct_i;
-    input ALUOp_i;
-    output [2:0] ALUCtrl_o;
+input [5:0] funct_i;
+input [2:0] ALUOp_i;
+output reg [2:0] ALUCtrl_o;
 
-    assign ALUCtrl_o = (ALUOp_i == 0)? 3'b101:
-    (funct_i == 6'b100100)? 3'b000:
-    (funct_i == 6'b100101)? 3'b001:
-    (funct_i == 6'b100000)? 3'b010:
-    (funct_i == 6'b100010)? 3'b011:
-    3'b100;
+`define ADD 3'b000
+`define SUB 3'b001
+`define AND 3'b010
+`define OR  3'b011
+`define SOL 3'b100
+`define MUL 3'b101
 
+always@(*) begin
+	case (ALUOp_i)
+		3'b000: begin
+			ALUCtrl_o <= `ADD;
+		end
+		default: begin
+			case(funct_i)
+				6'b100000: begin
+					ALUCtrl_o <= `ADD;
+				end
+				6'b100010: begin
+					ALUCtrl_o <= `SUB;
+				end
+				6'b100100: begin
+					ALUCtrl_o <= `AND;
+				end
+				6'b100101: begin
+					ALUCtrl_o <= `OR;
+				end
+				6'b101010: begin
+					ALUCtrl_o <= `SOL;
+				end
+				6'b011000: begin
+					ALUCtrl_o <= `MUL;
+				end
+			endcase
+		end
+	endcase
+end
 endmodule

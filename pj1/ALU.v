@@ -1,20 +1,44 @@
 module ALU(
-    data1_i,
-    data2_i,
-    ALUCtrl_i,
-    data_o,
-    Zero_o
+	data1_i,
+	data2_i,
+	ALUCtrl_i,
+	data_o,
+	Zero_o
 );
 
-    input [31:0] data1_i, data2_i;
-    input [2:0] ALUCtrl_i;
-    output [31:0] data_o;
-    output Zero_o;
+`define ADD 3'b000
+`define SUB 3'b001
+`define AND 3'b010
+`define OR  3'b011
+`define SOL 3'b100
+`define MUL 3'b101
 
-    assign data_o = (ALUCtrl_i == 3'b000)? (data1_i & data2_i):
-    (ALUCtrl_i == 3'b001)? (data1_i | data2_i):
-    (ALUCtrl_i == 3'b010)? (data1_i + data2_i):
-    (ALUCtrl_i == 3'b011)? (data1_i - data2_i):
-    (ALUCtrl_i == 3'b100)? (data1_i * data2_i):
-    (data1_i + data2_i);
+input [31:0] data1_i;
+input [31:0] data2_i;
+input [2:0] ALUCtrl_i;
+output reg [31:0] data_o;
+output reg Zero_o;
+
+always@(*)begin
+	case(ALUCtrl_i)
+		`ADD: begin
+			data_o = data1_i + data2_i;
+		end
+		`SUB: begin
+			data_o = data1_i - data2_i;
+		end
+		`AND: begin
+			data_o = data1_i & data2_i;
+		end
+		`OR: begin
+			data_o = data1_i | data2_i;
+		end
+		`MUL: begin
+			data_o = data1_i * data2_i;
+		end
+	endcase
+	Zero_o = (data_o == 32'b0)? 1:0;
+end
+
+
 endmodule
