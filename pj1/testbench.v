@@ -63,10 +63,12 @@ always@(posedge Clk) begin
     // put in your own signal to count stall and flush
     // if(CPU.HazzardDetection.mux8_o == 1 && CPU.Control.Jump_o == 0 && CPU.Control.Branch_o == 0)stall = stall + 1;
     // if(CPU.HazzardDetection.Flush_o == 1)flush = flush + 1;  
+    if(CPU.HazardDetection.bubble_ctrl == 1'b1)stall = stall + 1;
 
     // print PC
     $fdisplay(outfile, "cycle = %d, Start = %d, Stall = %d, Flush = %d\nPC = %d", counter, Start, stall, flush, CPU.PC.pc_o);
-    
+    $fdisplay(outfile, "pcwrite = %d, IFIDwrite = %d, bubble_ctrl = %d", CPU.HazardDetection.pcwrite, CPU.HazardDetection.IFIDwrite, CPU.HazardDetection.bubble_ctrl);
+
     // print Registers
     $fdisplay(outfile, "Registers");
     $fdisplay(outfile, "R0(r0) = %d, R8 (t0) = %d, R16(s0) = %d, R24(t8) = %d", CPU.Registers.register[0], CPU.Registers.register[8] , CPU.Registers.register[16], CPU.Registers.register[24]);

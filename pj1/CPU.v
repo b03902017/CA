@@ -12,8 +12,9 @@ input               start_i;
 
 wire [31:0] inst_addr, inst, pc_i;
 
-wire [2:0] aluop_ctrl; // control signal
-wire regdst_ctrl, alusrc_ctrl, regwrite_ctrl;//control signal
+
+wire [2:0] aluop, aluop_ctrl; // control signal
+wire regdst, regdst_ctrl, alusrc, alusrc_ctrl, regwrite, regwrite_ctrl;//control signal
 wire [2:0] aluctrl; // ALU control
 wire [4:0] dst_o; // reg destination
 wire [31:0] rsdata, rtdata; // registers
@@ -21,7 +22,7 @@ wire [31:0] extended; // sign extended
 wire [31:0] ALUsrc; // ALU source
 wire [31:0] ALUout; //ALU
 wire ALUzero; // ALU
-wire memread_ctrl, memwrite_ctrl, mem2reg_ctrl; // data memory
+wire memread, memread_ctrl, memwrite, memwrite_ctrl, mem2reg, mem2reg_ctrl; // data memory
 wire [31:0] dmdata; // data from data memory
 
 wire [31:0] IFIDpc, IFIDinst; 
@@ -50,6 +51,9 @@ wire [31:0] MEMWBdmdata;
 
 wire [31:0] data2reg;
 
+// stall control
+wire bubble_ctrl, IFIDwrite, pcwrite;
+
 // ----IF stage---- //
 Adder Add_PC(
     .data1_in   (inst_addr),
@@ -63,6 +67,7 @@ PC PC(
     .rst_i      (rst_i),
     .start_i    (start_i),
     .pc_i       (pc_i),
+    .pcwrite    (pcwrite),
     .pc_o       (inst_addr)
 );
 
@@ -76,6 +81,7 @@ IFIDRegister IFIDRegister(
     .clk_i  (clk_i),
     .pc_i   (inst_addr),
     .inst_i (inst),
+    .IFIDwrite  (IFIDwrite),
     .pc_o   (IFIDpc),
     .inst_o (IFIDinst)
 );
@@ -83,13 +89,21 @@ IFIDRegister IFIDRegister(
 // ----ID stage---- //
 Control Control(
     .Op_i       (IFIDinst[31:26]),
-    .RegDst_o   (regdst_ctrl),
-    .ALUOp_o    (aluop_ctrl),
-    .ALUSrc_o   (alusrc_ctrl),
-    .RegWrite_o (regwrite_ctrl),
-    .Memread_o  (memread_ctrl),
-    .Memwrite_o (memwrite_ctrl),
-    .Mem2reg_o  (mem2reg_ctrl)
+    .RegDst_o   (regdst),
+    .ALUOp_o    (aluop),
+    .ALUSrc_o   (alusrc),
+    .RegWrite_o (regwrite),
+    .Memread_o  (memread),
+    .Memwrite_o (memwrite),
+    .Mem2reg_o  (mem2reg)
+);
+
+MUX_stall MUX_stall(
+    .data1_i  ({regdst,aluop,alusrc,
+                regwrite,memread,memwrite,mem2reg}),
+    .select_i (bubble_ctrl),
+    .data_o   ({regdst_ctrl,aluop_ctrl,alusrc_ctrl,
+        regwrite_ctrl,memread_ctrl,memwrite_ctrl,mem2reg_ctrl})
 );
 
 
@@ -110,6 +124,15 @@ Sign_Extend Sign_Extend(
     .data_o     (extended)
 );
 
+HazardDetection HazardDetection(
+    .IDEXmemread    (IDEXmemread),
+    .IDEXrtaddr     (IDEXrtaddr),
+    .IFIDrsaddr     (IFIDinst[25:21]),
+    .IFIDrtaddr     (IFIDinst[20:16]),
+    .bubble_ctrl    (bubble_ctrl),
+    .IFIDwrite      (IFIDwrite),
+    .pcwrite        (pcwrite)
+);
 
 IDEXRegister IDEXRegister(
     .clk_i          (clk_i),

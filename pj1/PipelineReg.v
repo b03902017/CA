@@ -3,19 +3,23 @@ module IFIDRegister
 	clk_i,
 	pc_i,
 	inst_i,
+	IFIDwrite,
 	pc_o,
 	inst_o
 );
 	input clk_i;
 	input [31:0] pc_i;
 	input [31:0] inst_i;
+	input IFIDwrite; // stall
 
 	output reg [31:0] pc_o;
 	output reg [31:0] inst_o;
 
 	always@(posedge clk_i) begin
-		pc_o <= pc_i;
-		inst_o <= inst_i;
+		if(IFIDwrite)begin
+			pc_o <= pc_i;
+			inst_o <= inst_i;
+		end
 	end
 
 endmodule
