@@ -10,22 +10,29 @@ input               clk_i;
 input               rst_i;
 input               start_i;
 
-wire [31:0] inst_addr, inst, pc_i;
+wire [31:0] inst_addr, inst, pc_i, pc_add4;
 
 
 wire [2:0] aluop, aluop_ctrl; // control signal
-wire regdst, regdst_ctrl, alusrc, alusrc_ctrl, regwrite, regwrite_ctrl;//control signal
+wire regdst, regdst_ctrl, alusrc, alusrc_ctrl, regwrite, regwrite_ctrl, branch_ctrl, jump_ctrl;//control signal
 wire [2:0] aluctrl; // ALU control
 wire [4:0] dst_o; // reg destination
 wire [31:0] rsdata, rtdata; // registers
 wire [31:0] extended; // sign extended
+wire [31:0] shifted_32bit; //for beq immediate shift2
+wire [27:0] shifted_28bit; //for j immediate shift2
 wire [31:0] ALUsrc; // ALU source
 wire [31:0] ALUout; //ALU
 wire ALUzero; // ALU
 wire memread, memread_ctrl, memwrite, memwrite_ctrl, mem2reg, mem2reg_ctrl; // data memory
 wire [31:0] dmdata; // data from data memory
-
+wire equal_ornot; //for beq equal
 wire [31:0] IFIDpc, IFIDinst; 
+wire branch_select; //for mux1 to select branch pc or pc+4
+wire [31:0] branch_pc; //after adding pc+4 and shifted_32bit
+wire [31:0] j_pc; //after caculating j's pc
+wire [31:0] mux1_o; //after selecting using pc+4 or branch_pc
+wire flush_bit; //flush or not
 
 wire IDEXregdst, IDEXalusrc, IDEXregwrite;
 wire IDEXmemread, IDEXmemwrite, IDEXmem2reg;
@@ -58,9 +65,34 @@ wire bubble_ctrl, IFIDwrite, pcwrite;
 Adder Add_PC(
     .data1_in   (inst_addr),
     .data2_in   (32'd4),
-    .data_o     (pc_i)
+    .data_o     (pc_add4)
 );
 
+OR OR(
+    .data1_i	(jump_ctrl),
+    .data2_i	(branch_select),
+    .data_o	(flush_bit)
+);
+
+AND_gate AND_for_beq(
+    .data1_i	(branch_ctrl),
+    .data2_i	(equal_ornot),
+    .data_o	(branch_select)
+);
+
+MUX32 MUX1_for_beq(
+    .data1_i	(pc_add4),
+    .data2_i	(branch_pc),
+    .select_i	(branch_select),
+    .data_o	(mux1_o)
+);
+
+MUX32 MUX2_for_jump(
+    .data1_i	(mux1_o),
+    .data2_i	(j_pc),
+    .select_i	(jump_ctrl),
+    .data_o	(pc_i)
+);
 
 PC PC(
     .clk_i      (clk_i),
@@ -79,9 +111,10 @@ Instruction_Memory Instruction_Memory(
 
 IFIDRegister IFIDRegister(
     .clk_i  (clk_i),
-    .pc_i   (inst_addr),
+    .pc_i   (pc_add4),
     .inst_i (inst),
     .IFIDwrite  (IFIDwrite),
+    .IFIDflush	(flush_bit),
     .pc_o   (IFIDpc),
     .inst_o (IFIDinst)
 );
@@ -95,7 +128,26 @@ Control Control(
     .RegWrite_o (regwrite),
     .Memread_o  (memread),
     .Memwrite_o (memwrite),
-    .Mem2reg_o  (mem2reg)
+    .Mem2reg_o  (mem2reg),
+    .Branch_o	(branch_ctrl),
+    .Jump_o	(jump_ctrl)
+);
+
+Combine combine_forJ(
+    .data1_i	(shifted_28bit),
+    .data2_i	(mux1_o[31:28]),
+    .data_o	(j_pc)
+);
+
+Equal Equal_for_beq(
+    .data1_i	(rsdata),
+    .data2_i	(rtdata),
+    .data_o	(equal_ornot)
+);
+
+Shift_left2_26bit Shift_left2_forJ(
+    .data_i	(IFIDinst[25:0]),
+    .data_o	(shifted_28bit)
 );
 
 MUX_stall MUX_stall(
@@ -118,6 +170,16 @@ Registers Registers(
     .RTdata_o   (rtdata) 
 );
 
+Shift_left2_32bit Shift_left2_forBEQ(
+    .data_i	(extended),
+    .data_o	(shifted_32bit)
+);
+
+Adder Add_forBEQ(
+    .data1_in	(shifted_32bit),
+    .data2_in	(IFIDpc),
+    .data_o	(branch_pc)
+);
 
 Sign_Extend Sign_Extend(
     .data_i     (IFIDinst[15:0]),

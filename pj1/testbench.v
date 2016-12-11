@@ -26,6 +26,17 @@ initial begin
         CPU.Instruction_Memory.memory[i] = 32'b0;
     end
     
+    // initialize control bits'
+	CPU.Control.RegDst_o = 1'b0;
+	CPU.Control.ALUOp_o = 3'b000; 
+	CPU.Control.ALUSrc_o = 1'b0;
+	CPU.Control.RegWrite_o = 1'b0;
+	CPU.Control.Memread_o = 1'b0;
+	CPU.Control.Memwrite_o = 1'b0;
+	CPU.Control.Mem2reg_o = 1'b0;
+	CPU.Control.Branch_o = 1'b0;
+	CPU.Control.Jump_o = 1'b0;
+
     // initialize data memory
     for(i=0; i<32; i=i+1) begin
         CPU.Data_Memory.memory[i] = 32'b0;
@@ -57,14 +68,14 @@ initial begin
 end
   
 always@(posedge Clk) begin
-    if(counter == 15)    // stop after 30 cycles
+    if(counter == 30)    // stop after 30 cycles
         $stop;
 
     // put in your own signal to count stall and flush
     // if(CPU.HazzardDetection.mux8_o == 1 && CPU.Control.Jump_o == 0 && CPU.Control.Branch_o == 0)stall = stall + 1;
     // if(CPU.HazzardDetection.Flush_o == 1)flush = flush + 1;  
     if(CPU.HazardDetection.bubble_ctrl == 1'b1)stall = stall + 1;
-
+    if(CPU.OR.data_o == 1'b1)flush = flush + 1;
     // print PC
     $fdisplay(outfile, "cycle = %d, Start = %d, Stall = %d, Flush = %d\nPC = %d", counter, Start, stall, flush, CPU.PC.pc_o);
     $fdisplay(outfile, "pcwrite = %d, IFIDwrite = %d, bubble_ctrl = %d", CPU.HazardDetection.pcwrite, CPU.HazardDetection.IFIDwrite, CPU.HazardDetection.bubble_ctrl);
