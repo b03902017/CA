@@ -48,7 +48,7 @@ initial begin
     end
     
     // Load instructions into instruction memory
-    $readmemb("test.txt", CPU.Instruction_Memory.memory);
+    $readmemb("instruction.txt", CPU.Instruction_Memory.memory);
     
     // Open output file
     outfile = $fopen("output.txt") | 1;
@@ -78,8 +78,7 @@ always@(posedge Clk) begin
     if(CPU.OR.data_o == 1'b1)flush = flush + 1;
     // print PC
     $fdisplay(outfile, "cycle = %d, Start = %d, Stall = %d, Flush = %d\nPC = %d", counter, Start, stall, flush, CPU.PC.pc_o);
-    $fdisplay(outfile, "pcwrite = %d, IFIDwrite = %d, bubble_ctrl = %d", CPU.HazardDetection.pcwrite, CPU.HazardDetection.IFIDwrite, CPU.HazardDetection.bubble_ctrl);
-
+    
     // print Registers
     $fdisplay(outfile, "Registers");
     $fdisplay(outfile, "R0(r0) = %d, R8 (t0) = %d, R16(s0) = %d, R24(t8) = %d", CPU.Registers.register[0], CPU.Registers.register[8] , CPU.Registers.register[16], CPU.Registers.register[24]);

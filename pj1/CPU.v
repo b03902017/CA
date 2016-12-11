@@ -17,7 +17,7 @@ wire [2:0] aluop, aluop_ctrl; // control signal
 wire regdst, regdst_ctrl, alusrc, alusrc_ctrl, regwrite, regwrite_ctrl, branch_ctrl, jump_ctrl;//control signal
 wire [2:0] aluctrl; // ALU control
 wire [4:0] dst_o; // reg destination
-wire [31:0] rsdata, rtdata; // registers
+wire [31:0] reg_rsdata, reg_rtdata; // registers
 wire [31:0] extended; // sign extended
 wire [31:0] shifted_32bit; //for beq immediate shift2
 wire [27:0] shifted_28bit; //for j immediate shift2
@@ -26,6 +26,7 @@ wire [31:0] ALUout; //ALU
 wire ALUzero; // ALU
 wire memread, memread_ctrl, memwrite, memwrite_ctrl, mem2reg, mem2reg_ctrl; // data memory
 wire [31:0] dmdata; // data from data memory
+
 wire equal_ornot; //for beq equal
 wire [31:0] IFIDpc, IFIDinst; 
 wire branch_select; //for mux1 to select branch pc or pc+4
@@ -33,6 +34,8 @@ wire [31:0] branch_pc; //after adding pc+4 and shifted_32bit
 wire [31:0] j_pc; //after caculating j's pc
 wire [31:0] mux1_o; //after selecting using pc+4 or branch_pc
 wire flush_bit; //flush or not
+wire [31:0] rsdata, rtdata; // send to IDEX
+
 
 wire IDEXregdst, IDEXalusrc, IDEXregwrite;
 wire IDEXmemread, IDEXmemwrite, IDEXmem2reg;
@@ -57,6 +60,7 @@ wire [4:0]  MEMWBregdst;
 wire [31:0] MEMWBdmdata;
 
 wire [31:0] data2reg;
+wire IDforwardA, IDforwardB;
 
 // stall control
 wire bubble_ctrl, IFIDwrite, pcwrite;
@@ -158,16 +162,15 @@ MUX_stall MUX_stall(
         regwrite_ctrl,memread_ctrl,memwrite_ctrl,mem2reg_ctrl})
 );
 
-
 Registers Registers(
     .clk_i      (clk_i),
     .RSaddr_i   (IFIDinst[25:21]),
     .RTaddr_i   (IFIDinst[20:16]),
-    .RDaddr_i   (MEMWBregdst), 
-    .RDdata_i   (data2reg), 
-    .RegWrite_i (MEMWBregwrite), 
-    .RSdata_o   (rsdata), 
-    .RTdata_o   (rtdata) 
+    .RDaddr_i   (MEMWBregdst),
+    .RDdata_i   (data2reg),
+    .RegWrite_i (MEMWBregwrite),
+    .RSdata_o   (reg_rsdata),
+    .RTdata_o   (reg_rtdata)
 );
 
 Shift_left2_32bit Shift_left2_forBEQ(
@@ -196,6 +199,20 @@ HazardDetection HazardDetection(
     .pcwrite        (pcwrite)
 );
 
+MUX32 IDRsForward(
+    .data1_i    (reg_rsdata),
+    .data2_i    (data2reg),
+    .select_i   (IDforwardA),
+    .data_o     (rsdata)
+);
+
+MUX32 IDRtForward(
+    .data1_i    (reg_rtdata),
+    .data2_i    (data2reg),
+    .select_i   (IDforwardB),
+    .data_o     (rtdata)
+);
+
 IDEXRegister IDEXRegister(
     .clk_i          (clk_i),
     .regdst_ctrl    (regdst_ctrl),
@@ -214,7 +231,7 @@ IDEXRegister IDEXRegister(
     .func_i         (IFIDinst[5:0]),
     .regdst_o       (IDEXregdst),
     .aluop_o        (IDEXaluop),
-    .alusrc_o       (IDEXalusrc),   
+    .alusrc_o       (IDEXalusrc),
     .regwrite_o     (IDEXregwrite),
     .memread_o      (IDEXmemread),
     .memwrite_o     (IDEXmemwrite),
@@ -332,13 +349,20 @@ MEMWBregister MEMWBregister(
 
 // ---- WB stage ---- //
 
-MUX32 memregMux(
+MUX32 Mux_memreg(
     .data1_i (MEMWBaluout),
     .data2_i (MEMWBdmdata),
     .select_i (MEMWBmem2reg),
     .data_o   (data2reg)
 );
 
+IDForwarding IDForwarding(
+	.IFIDrsaddr    (IFIDinst[25:21]),
+	.IFIDrtaddr    (IFIDinst[20:16]),
+	.MEMWBregwrite (MEMWBregwrite),
+	.MEMWBregdst   (MEMWBregdst),
+	.IDforwardA    (IDforwardA),
+	.IDforwardB    (IDforwardB)
+);
 
 endmodule
-
