@@ -29,7 +29,7 @@ always@(*) begin
 		Mem2reg_o <= 1'b0;
 	end
 	else if(Op_i == 6'b101011) begin //save word
-		RegDst_o <= 1'b0; // don't cate
+		RegDst_o <= 1'b0; // don't care
 		ALUOp_o <= 3'b000; // Add
 		ALUSrc_o <= 1'b1; // use immediate
 		RegWrite_o <= 1'b0;
@@ -38,7 +38,7 @@ always@(*) begin
 		Mem2reg_o <= 1'b0;
 	end
 	else if(Op_i == 6'b100011) begin // load word
-		RegDst_o <= 1'b0; // don't cate
+		RegDst_o <= 1'b0; // don't care
 		ALUOp_o <= 3'b000; // Add
 		ALUSrc_o <= 1'b1; // use immediate
 		RegWrite_o <= 1'b1;

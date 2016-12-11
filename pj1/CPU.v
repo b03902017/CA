@@ -14,10 +14,10 @@ wire [31:0] inst_addr, inst, pc_i;
 
 
 wire [2:0] aluop, aluop_ctrl; // control signal
-wire regdst, regdst_ctrl, alusrc, alusrc_ctrl, regwrite, regwrite_ctrl;//control signal
+wire regdst, regdst_ctrl, alusrc, alusrc_ctrl, regwrite, regwrite_ctrl;// control signal
 wire [2:0] aluctrl; // ALU control
 wire [4:0] dst_o; // reg destination
-wire [31:0] rsdata, rtdata; // registers
+wire [31:0] reg_rsdata, reg_rtdata; // registers
 wire [31:0] extended; // sign extended
 wire [31:0] ALUsrc; // ALU source
 wire [31:0] ALUout; //ALU
@@ -25,7 +25,8 @@ wire ALUzero; // ALU
 wire memread, memread_ctrl, memwrite, memwrite_ctrl, mem2reg, mem2reg_ctrl; // data memory
 wire [31:0] dmdata; // data from data memory
 
-wire [31:0] IFIDpc, IFIDinst; 
+wire [31:0] IFIDpc, IFIDinst;
+wire [31:0] rsdata, rtdata; // send to IDEX
 
 wire IDEXregdst, IDEXalusrc, IDEXregwrite;
 wire IDEXmemread, IDEXmemwrite, IDEXmem2reg;
@@ -50,6 +51,7 @@ wire [4:0]  MEMWBregdst;
 wire [31:0] MEMWBdmdata;
 
 wire [31:0] data2reg;
+wire IDforwardA, IDforwardB;
 
 // stall control
 wire bubble_ctrl, IFIDwrite, pcwrite;
@@ -106,16 +108,15 @@ MUX_stall MUX_stall(
         regwrite_ctrl,memread_ctrl,memwrite_ctrl,mem2reg_ctrl})
 );
 
-
 Registers Registers(
     .clk_i      (clk_i),
     .RSaddr_i   (IFIDinst[25:21]),
     .RTaddr_i   (IFIDinst[20:16]),
-    .RDaddr_i   (MEMWBregdst), 
-    .RDdata_i   (data2reg), 
-    .RegWrite_i (MEMWBregwrite), 
-    .RSdata_o   (rsdata), 
-    .RTdata_o   (rtdata) 
+    .RDaddr_i   (MEMWBregdst),
+    .RDdata_i   (data2reg),
+    .RegWrite_i (MEMWBregwrite),
+    .RSdata_o   (reg_rsdata),
+    .RTdata_o   (reg_rtdata)
 );
 
 
@@ -132,6 +133,20 @@ HazardDetection HazardDetection(
     .bubble_ctrl    (bubble_ctrl),
     .IFIDwrite      (IFIDwrite),
     .pcwrite        (pcwrite)
+);
+
+MUX32 IDRsForward(
+    .data1_i    (reg_rsdata),
+    .data2_i    (data2reg),
+    .select_i   (IDforwardA),
+    .data_o     (rsdata)
+);
+
+MUX32 IDRtForward(
+    .data1_i    (reg_rtdata),
+    .data2_i    (data2reg),
+    .select_i   (IDforwardB),
+    .data_o     (rtdata)
 );
 
 IDEXRegister IDEXRegister(
@@ -152,7 +167,7 @@ IDEXRegister IDEXRegister(
     .func_i         (IFIDinst[5:0]),
     .regdst_o       (IDEXregdst),
     .aluop_o        (IDEXaluop),
-    .alusrc_o       (IDEXalusrc),   
+    .alusrc_o       (IDEXalusrc),
     .regwrite_o     (IDEXregwrite),
     .memread_o      (IDEXmemread),
     .memwrite_o     (IDEXmemwrite),
@@ -277,6 +292,13 @@ MUX32 memregMux(
     .data_o   (data2reg)
 );
 
+IDForwarding IDForwarding(
+	.IFIDrsaddr    (IFIDinst[25:21]),
+	.IFIDrtaddr    (IFIDinst[20:16]),
+	.MEMWBregwrite (MEMWBregwrite),
+	.MEMWBregdst   (MEMWBregdst),
+	.IDforwardA    (IDforwardA),
+	.IDforwardB    (IDforwardB)
+);
 
 endmodule
-
