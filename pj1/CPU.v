@@ -28,7 +28,7 @@ wire memread, memread_ctrl, memwrite, memwrite_ctrl, mem2reg, mem2reg_ctrl; // d
 wire [31:0] dmdata; // data from data memory
 
 wire equal_ornot; //for beq equal
-wire [31:0] IFIDpc, IFIDinst; 
+wire [31:0] IFIDpc, IFIDinst;
 wire branch_select; //for mux1 to select branch pc or pc+4
 wire [31:0] branch_pc; //after adding pc+4 and shifted_32bit
 wire [31:0] j_pc; //after caculating j's pc
@@ -72,7 +72,7 @@ Adder Add_PC(
     .data_o     (pc_add4)
 );
 
-OR OR(
+OR OR_for_flush(
     .data1_i	(jump_ctrl),
     .data2_i	(branch_select),
     .data_o	(flush_bit)
