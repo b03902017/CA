@@ -285,7 +285,7 @@ MEMWBregister MEMWBregister(
 
 // ---- WB stage ---- //
 
-MUX32 memregMux(
+MUX32 Mux_memreg(
     .data1_i (MEMWBaluout),
     .data2_i (MEMWBdmdata),
     .select_i (MEMWBmem2reg),

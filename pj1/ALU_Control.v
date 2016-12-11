@@ -12,7 +12,6 @@ output reg [2:0] ALUCtrl_o;
 `define SUB 3'b001
 `define AND 3'b010
 `define OR  3'b011
-`define SOL 3'b100
 `define MUL 3'b101
 
 always@(*) begin
@@ -33,9 +32,6 @@ always@(*) begin
 				end
 				6'b100101: begin
 					ALUCtrl_o <= `OR;
-				end
-				6'b101010: begin
-					ALUCtrl_o <= `SOL;
 				end
 				6'b011000: begin
 					ALUCtrl_o <= `MUL;
